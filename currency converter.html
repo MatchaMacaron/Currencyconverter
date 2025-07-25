@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Currency Converter</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --secondary: #3f37c9;
+      --accent: #4895ef;
+      --light: #f8f9fa;
+      --dark: #212529;
+    }
+
+    /* Clean background without overlay */
+    body {
+      background: url('https://i.imgur.com/DUjg8i1.jpg') center/cover fixed no-repeat;
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 10%;
+      color: var(--dark);
+    }
+
+    /* Glass card effect */
+    .converter-container {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      max-width: 700px;
+      width: 100%;
+      margin: 20px;
+      padding: 40px;
+      border-radius: 24px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Elegant title without underline */
+    h2 {
+      text-align: center;
+      margin-bottom: 40px;
+      font-weight: 800;
+      font-size: 2.6rem;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      position: relative;
+      text-shadow: 0 2px 8px rgba(67, 97, 238, 0.15);
+    }
+
+    /* Currency cards with adjusted input width */
+    .currency-group {
+      margin-bottom: 28px;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0, 77, 153, 0.1);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      position: relative;
+      overflow: hidden;
+      border: none;
+    }
+
+    .currency-group::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 70px); /* Adjusted to match input height */
+      background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent);
+      z-index: 0;
+    }
+
+    .currency-group:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 28px rgba(0, 77, 153, 0.2);
+    }
+
+    /* Color themes for each currency */
+    #usd-group { 
+      background: linear-gradient(135deg, #4361ee, #4895ef);
+      color: white;
+    }
+    #eur-group { 
+      background: linear-gradient(135deg, #f8961e, #f3722c);
+      color: white;
+    }
+    #gbp-group { 
+      background: linear-gradient(135deg, #6c757d, #495057);
+      color: white;
+    }
+    #cny-group { 
+      background: linear-gradient(135deg, #f94144, #f3722c);
+      color: white;
+    }
+
+    /* Floating flag icons */
+    .currency-flag {
+      position: absolute;
+      right: 24px;
+      top: 24px;
+      font-size: 2rem;
+      opacity: 0.2;
+      z-index: 0;
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    /* Adjusted input container */
+    .input-container {
+      position: relative;
+      width: calc(100% - 8px); /* Slightly narrower than card */
+      margin: 0 auto;
+    }
+
+    /* Premium input styling */
+    input[type="number"] {
+      font-size: 1.4rem;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-weight: 600;
+      color: inherit;
+      transition: all 0.3s ease;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      z-index: 1;
+      box-sizing: border-box;
+    }
+
+    input[type="number"]::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Exchange rate display */
+    .rate-info {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.85);
+      text-align: right;
+      margin-top: 10px;
+      font-style: italic;
+      z-index: 1;
+      font-weight: 500;
+    }
+
+    /* Footer with subtle glow */
+    footer {
+      margin-top: 50px;
+      font-size: 0.95rem;
+      text-align: center;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive design */
+    @media (max-width: 900px) {
+      .converter-container {
+        max-width: 600px;
+        padding: 30px;
+      }
+      
+      h2 {
+        font-size: 2.2rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        justify-content: center;
+        padding: 20px;
+      }
+      
+      .converter-container {
+        max-width: 500px;
+      }
+      
+      h2 {
+        font-size: 2rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .converter-container {
+        padding: 25px;
+      }
+      
+      h2 {
+        font-size: 1.8rem;
+      }
+      
+      input[type="number"] {
+        font-size: 1.2rem;
+        padding: 14px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="converter-container">
+    <h2>Live Currency Converter</h2>
+
+    <div class="currency-group" id="usd-group">
+      <i class="currency-flag fas fa-flag-usa"></i>
+      <label for="usd">USD ($)</label>
+      <div class="input-container">
+        <input type="number" id="usd" placeholder="Enter amount..." />
+      </div>
+      <div class="rate-info" id="usd-rate">1 USD = ...</div>
+    </div>
+
+    <div class="currency-group" id="eur-group">
+      <i class="currency-flag fas fa-flag-eu"></i>
+      <label for="eur">EUR (€)</label>
+      <div class="input-container">
+        <input type="number" id="eur" placeholder="Enter amount..." />
+      </div>
+      <div class="rate-info" id="eur-rate">1 EUR = ...</div>
+    </div>
+
+    <div class="currency-group" id="gbp-group">
+      <i class="currency-flag fas fa-flag-uk"></i>
+      <label for="gbp">GBP (£)</label>
+      <div class="input-container">
+        <input type="number" id="gbp" placeholder="Enter amount..." />
+      </div>
+      <div class="rate-info" id="gbp-rate">1 GBP = ...</div>
+    </div>
+
+    <div class="currency-group" id="cny-group">
+      <i class="currency-flag fas fa-flag-china"></i>
+      <label for="cny">CNY (¥)</label>
+      <div class="input-container">
+        <input type="number" id="cny" placeholder="Enter amount..." />
+      </div>
+      <div class="rate-info" id="cny-rate">1 CNY = ...</div>
+    </div>
+
+    <footer>
+      <p>Exchange rates provided by <a href="https://www.exchangerate-api.com/" target="_blank">ExchangeRate-API</a></p>
+      <p>Developed by Rain Cao, via DeepSeek and ChatGPT</p>
+    </footer>
+  </div>
+
+  <script>
+    const inputs = {
+      USD: document.getElementById('usd'),
+      EUR: document.getElementById('eur'),
+      GBP: document.getElementById('gbp'),
+      CNY: document.getElementById('cny')
+    };
+
+    const rateDisplays = {
+      USD: document.getElementById('usd-rate'),
+      EUR: document.getElementById('eur-rate'),
+      GBP: document.getElementById('gbp-rate'),
+      CNY: document.getElementById('cny-rate')
+    };
+
+    let rates = {};
+
+    async function fetchRates() {
+      try {
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await res.json();
+        if (!data || !data.rates) {
+          alert('Failed to load rates');
+          console.error('API returned unexpected data:', data);
+          return;
+        }
+        rates = data.rates;
+        console.log('Rates loaded:', rates);
+        updateRateDisplays();
+        setupListeners();
+      } catch (err) {
+        alert('Error loading exchange rates. Try again later.');
+        console.error(err);
+      }
+    }
+
+    function updateRateDisplays() {
+      if (rates.EUR) {
+        rateDisplays.USD.textContent = `1 USD = ${rates.EUR.toFixed(4)} EUR | ${rates.GBP.toFixed(4)} GBP | ${rates.CNY.toFixed(4)} CNY`;
+        rateDisplays.EUR.textContent = `1 EUR = ${(1/rates.EUR).toFixed(4)} USD | ${(rates.GBP/rates.EUR).toFixed(4)} GBP | ${(rates.CNY/rates.EUR).toFixed(4)} CNY`;
+        rateDisplays.GBP.textContent = `1 GBP = ${(1/rates.GBP).toFixed(4)} USD | ${(rates.EUR/rates.GBP).toFixed(4)} EUR | ${(rates.CNY/rates.GBP).toFixed(4)} CNY`;
+        rateDisplays.CNY.textContent = `1 CNY = ${(1/rates.CNY).toFixed(4)} USD | ${(rates.EUR/rates.CNY).toFixed(4)} EUR | ${(rates.GBP/rates.CNY).toFixed(4)} GBP`;
+      }
+    }
+
+    function convertFrom(currency, amount) {
+      const rateOfCurrency = currency === 'USD' ? 1 : rates[currency];
+      if (!rateOfCurrency) {
+        console.warn('Rate not found for', currency);
+        return;
+      }
+
+      const amountInUSD = amount / rateOfCurrency;
+
+      for (const [cur, input] of Object.entries(inputs)) {
+        if (cur !== currency) {
+          const rateOfTarget = cur === 'USD' ? 1 : rates[cur];
+          input.value = (amountInUSD * rateOfTarget).toFixed(2);
+        }
+      }
+    }
+
+    function setupListeners() {
+      for (const [currency, input] of Object.entries(inputs)) {
+        input.addEventListener('input', (event) => {
+          const value = parseFloat(input.value);
+          if (!isNaN(value) && value >= 0) {
+            convertFrom(currency, value);
+          } else {
+            for (const [cur, otherInput] of Object.entries(inputs)) {
+              if (cur !== currency) otherInput.value = '';
+            }
+          }
+        });
+      }
+    }
+
+    fetchRates();
+  </script>
+</body>
+</html>

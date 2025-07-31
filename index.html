@@ -3,8 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Currency Converter</title>
+  <title>Live Currency Converter & History</title>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     :root {
       --primary: #4361ee;
@@ -12,7 +16,6 @@
       --accent: #4895ef;
       --light: #f8f9fa;
       --dark: #212529;
-      --text-secondary: #718096;
     }
 
     body {
@@ -21,24 +24,46 @@
       min-height: 100vh;
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      padding-right: 10%;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
       color: var(--dark);
     }
 
-    .converter-container {
-     background: var(--container-bg); /* Updated to light blue */
+    .main-content-wrapper {
+        display: flex;
+        justify-content: flex-end; /* Align content to the right */
+        align-items: flex-start;
+        gap: 30px;
+        width: 100%;
+        max-width: 1600px;
+    }
+
+    .panel-style {
+      background: rgba(200, 220, 255, 0.15);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      max-width: 700px;
-      width: 100%;
-      margin: 20px;
       padding: 40px;
       border-radius: 24px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
       border: 1px solid rgba(255, 255, 255, 0.3);
       animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Left panel for charts */
+    #charts-panel {
+        width: 55%; 
+        position: sticky;
+        top: 40px;
+        transition: width 0.4s ease, padding 0.4s ease, opacity 0.4s ease, border 0.4s ease;
+    }
+
+    /* Right panel for converter */
+    .converter-container {
+        width: 45%; 
+        max-width: 700px;
+        margin: 0;
+        flex-shrink: 0; /* Prevent this panel from shrinking */
     }
 
     h2 {
@@ -47,378 +72,194 @@
       font-weight: 800;
       font-size: 2.6rem;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #c5e7f0, #d8edf2); /* Stronger gradient */
+      background: linear-gradient(135deg, #c5e7f0, #d8edf2);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
       position: relative;
-      text-shadow: 
-        0 2px 4px rgba(0,0,0,0.1), /* Subtle shadow for depth */
-        0 0 12px rgba(42, 82, 209, 0.3); /* Glow effect */
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 12px rgba(42, 82, 209, 0.3);
       padding: 0 10px;
       display: inline-block;
       margin-left: 50%;
       transform: translateX(-50%);
     }
 
-    /* Optional: Add a subtle background to the title for better contrast */
-    .title-wrapper {
-      background: rgba(255,255,255,0.2);
-      backdrop-filter: blur(5px);
-      border-radius: 12px;
-      padding: 8px 20px;
-      display: inline-block;
-      margin-bottom: 20px;
-    }
-
     .last-updated {
       text-align: center;
       margin-bottom: 30px;
       font-size: 0.9rem;
-      color: rgba(240, 249, 252);
+      color: rgba(240, 249, 252, 0.9);
       line-height: 1.6;
     }
 
-    .currency-group {
-      margin-bottom: 28px;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0, 77, 153, 0.1);
-      display: flex;
-      flex-direction: column;
-      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      position: relative;
-      overflow: hidden;
-      border: none;
+    .currency-group { margin-bottom: 28px; padding: 24px; border-radius: 16px; box-shadow: 0 6px 20px rgba(0, 77, 153, 0.1); display: flex; flex-direction: column; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; overflow: hidden; border: none; }
+    .currency-group::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent); z-index: 0; }
+    .currency-group:hover { transform: translateY(-5px); box-shadow: 0 12px 28px rgba(0, 77, 153, 0.2); }
+    #usd-group { background: linear-gradient(135deg, #1e3e5e, #3b6d9d); color: white; }
+    #eur-group { background: linear-gradient(135deg, #f3722c, #eb9767); color: white; }
+    #gbp-group { background: linear-gradient(135deg, #548f9e, #7bcee4); color: white; }
+    #cny-group { background: linear-gradient(135deg, #f94144, #f84445); color: white; }
+    .currency-flag { position: absolute; right: 24px; top: 24px; font-size: 2rem; opacity: 0.2; z-index: 0; color: white; transition: all 0.3s ease; }
+    .input-container { position: relative; width: 100%; margin: 12px 0 0 0; }
+    label { font-weight: 800; font-size: 1.3rem; margin: 0 0 4px 4px; color: inherit; z-index: 1; letter-spacing: -0.2px; width: 100%; display: block; }
+    input[type="number"] { font-size: 1.4rem; border: none; border-radius: 12px; padding: 16px 20px; font-weight: 600; color: inherit; transition: all 0.3s ease; width: 100%; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 1; box-sizing: border-box; }
+    input[type="number"]::placeholder { color: rgba(255, 255, 255, 0.7); }
+    input[type="number"]:focus { outline: none; background: rgba(255, 255, 255, 0.3); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4); }
+    .rate-info { font-size: 0.9rem; color: rgba(255,255,255,0.85); text-align: right; margin: 8px 4px 0 0; font-style: italic; z-index: 1; font-weight: 500; }
+    footer { margin-top: 50px; font-size: 0.9rem; text-align: center; color: var(--dark); line-height: 1.6; }
+    footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    footer a:hover { text-decoration: underline; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* --- STYLES FOR HISTORY FEATURE --- */
+    
+    .history-link { color: rgba(255, 255, 255, 0.85); cursor: pointer; text-decoration: none; margin: 12px 4px 0; text-align: right; font-weight: 500; z-index: 1; font-size: 0.9rem; transition: color 0.2s ease-in-out; }
+    .history-link:hover { color: #fff; text-decoration: underline; }
+
+    /* Chart panel title - styled like main h2 */
+    #chartsContainer h3 {
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 25px;
+        font-weight: 800;
+        font-size: 2.2rem; /* Slightly smaller to fit panel */
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #c5e7f0, #d8edf2);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 12px rgba(42, 82, 209, 0.3);
+    }
+    
+    /* Close button - light color with dark shadow */
+    #closeCharts {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1.6rem;
+        color: #f0f8ff; /* Light color (AliceBlue) */
+        padding: 5px 10px;
+        transition: all 0.2s ease-in-out;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); /* Dark shadow */
+    }
+    #closeCharts:hover {
+        color: #fff;
+        transform: scale(1.1);
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+    }
+    
+    #chartsContainer canvas { max-width: 100%; margin-bottom: 20px; background-color: rgba(255, 255, 255, 0.6); border-radius: 12px; padding: 10px; box-sizing: border-box; }
+    #rangeSelectors { margin-bottom: 10px; text-align: center; }
+    #rangeSelectors button { margin: 0 5px; padding: 10px 18px; cursor: pointer; border: 1px solid transparent; background-color: rgba(0,0,0,0.05); color: #3b6d9d; border-radius: 8px; font-weight: 700; font-size: 0.95rem; letter-spacing: 0.5px; transition: all 0.2s ease-in-out; }
+    #rangeSelectors button:hover { background-color: rgba(0,0,0,0.1); border-color: #3b6d9d; }
+    #rangeSelectors button.active { background-color: #1e3e5e; color: white; border-color: #1e3e5e; }
+
+    /* Special styles for YTD/ALL buttons */
+    #rangeSelectors button[data-range="ytd"],
+    #rangeSelectors button[data-range="all"] {
+        color: rgba(240, 249, 252, 0.9);
+        background-color: rgba(0, 0, 0, 0.25);
+    }
+    #rangeSelectors button[data-range="ytd"]:hover,
+    #rangeSelectors button[data-range="all"]:hover {
+        background-color: rgba(0, 0, 0, 0.35);
+        border-color: rgba(240, 249, 252, 0.5);
     }
 
-    .currency-group::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: calc(100% - 70px);
-      background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent);
-      z-index: 0;
-    }
-
-    .currency-group:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 28px rgba(0, 77, 153, 0.2);
-    }
-
-    #usd-group { 
-      background: linear-gradient(135deg, #1e3e5e, #3b6d9d);
-      color: white;
-    }
-    #eur-group { 
-      background: linear-gradient(135deg, #f3722c, #eb9767);
-      color: white;
-    }
-    #gbp-group { 
-      background: linear-gradient(135deg, #548f9e, #7bcee4);
-      color: white;
-    }
-    #cny-group { 
-      background: linear-gradient(135deg, #f94144, #f84445);
-      color: white;
-    }
-
-    .currency-flag {
-      position: absolute;
-      right: 24px;
-      top: 24px;
-      font-size: 2rem;
-      opacity: 0.2;
-      z-index: 0;
-      color: white;
-      transition: all 0.3s ease;
-    }
-
-    .input-container {
-      position: relative;
-      width: 100%;
-      margin: 12px 0 0 0;
-    }
-
-    label {
-      font-weight: 800;
-      font-size: 1.3rem;
-      margin: 0 0 4px 4px;
-      color: inherit;
-      z-index: 1;
-      letter-spacing: -0.2px;
-      width: 100%;
-      display: block;
-    }
-
-    input[type="number"] {
-      font-size: 1.4rem;
-      border: none;
-      border-radius: 12px;
-      padding: 16px 20px;
-      font-weight: 600;
-      color: inherit;
-      transition: all 0.3s ease;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      z-index: 1;
-      box-sizing: border-box;
-    }
-
-    input[type="number"]::placeholder {
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    input[type="number"]:focus {
-      outline: none;
-      background: rgba(255, 255, 255, 0.3);
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
-    }
-
-    .rate-info {
-      font-size: 0.9rem;
-      color: rgba(255,255,255,0.85);
-      text-align: right;
-      margin: 8px 4px 0 0;
-      font-style: italic;
-      z-index: 1;
-      font-weight: 500;
-    }
-
-    footer {
-      margin-top: 50px;
-      font-size: 0.9rem;
-      text-align: center;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    footer a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    footer a:hover {
-      text-decoration: underline;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 900px) {
-      .converter-container {
-        max-width: 600px;
-        padding: 30px;
-      }
-      
-      h2 {
-        font-size: 2.2rem;
-      }
-    }
-
-    @media (max-width: 768px) {
-      body {
-        justify-content: center;
-        padding: 20px;
-      }
-      
-      .converter-container {
-        max-width: 500px;
-      }
-      
-      h2 {
-        font-size: 2rem;
-      }
+    @media (max-width: 1200px) {
+        .main-content-wrapper { flex-direction: column; align-items: center; justify-content: flex-start; }
+        #charts-panel, .converter-container { width: 100%; max-width: 700px; }
+        #charts-panel { position: static; order: -1; } /* Place chart panel on top on mobile */
     }
 
     @media (max-width: 480px) {
-      .converter-container {
-        padding: 25px;
-      }
-      
-      h2 {
-        font-size: 1.8rem;
-      }
-      
-      input[type="number"] {
-        font-size: 1.2rem;
-        padding: 14px 16px;
-      }
-      
-      label {
-        font-size: 1.1rem;
-        margin-left: 2px;
-      }
+      .panel-style { padding: 25px; }
+      h2 { font-size: 1.8rem; }
+      #chartsContainer h3 { font-size: 1.7rem; }
+      input[type="number"] { font-size: 1.2rem; padding: 14px 16px; }
+      label { font-size: 1.1rem; }
+      #rangeSelectors button { padding: 8px 12px; font-size: 0.85rem;}
     }
   </style>
 </head>
 <body>
-  <div class="converter-container">
-    <h2>Live Currency Converter</h2>
-    
-    <div class="last-updated">
-      Last updated: <span id="timestamp">Never</span>
-      <div class="refresh-info">Auto-refreshes every 30 minutes</div>
-    </div>
 
-    <div class="currency-group" id="usd-group">
-      <i class="currency-flag fas fa-flag-usa"></i>
-      <label for="usd">USD ($)</label>
-      <div class="input-container">
-        <input type="number" id="usd" placeholder="Enter amount..." />
+  <div class="main-content-wrapper">
+    <div id="charts-panel" class="panel-style" style="width: 0; padding: 0; border: 0; opacity: 0; overflow: hidden;">
       </div>
-      <div class="rate-info" id="usd-rate">1 USD = ...</div>
-    </div>
 
-    <div class="currency-group" id="eur-group">
-      <i class="currency-flag fas fa-flag-eu"></i>
-      <label for="eur">EUR (€)</label>
-      <div class="input-container">
-        <input type="number" id="eur" placeholder="Enter amount..." />
-      </div>
-      <div class="rate-info" id="eur-rate">1 EUR = ...</div>
+    <div class="converter-container panel-style">
+      <h2>Live Currency Converter</h2>
+      <div class="last-updated">Last updated: <span id="timestamp">Never</span><div class="refresh-info">Auto-refreshes every 30 minutes</div></div>
+      <div class="currency-group" id="usd-group"><i class="currency-flag fas fa-flag-usa"></i><label for="usd">USD ($)</label><div class="input-container"><input type="number" id="usd" placeholder="Enter amount..." /></div><div class="rate-info" id="usd-rate">1 USD = ...</div><div class="history-link" data-base="USD">Show History</div></div>
+      <div class="currency-group" id="eur-group"><i class="currency-flag fas fa-euro-sign"></i><label for="eur">EUR (€)</label><div class="input-container"><input type="number" id="eur" placeholder="Enter amount..." /></div><div class="rate-info" id="eur-rate">1 EUR = ...</div><div class="history-link" data-base="EUR">Show History</div></div>
+      <div class="currency-group" id="gbp-group"><i class="currency-flag fas fa-pound-sign"></i><label for="gbp">GBP (£)</label><div class="input-container"><input type="number" id="gbp" placeholder="Enter amount..." /></div><div class="rate-info" id="gbp-rate">1 GBP = ...</div><div class="history-link" data-base="GBP">Show History</div></div>
+      <div class="currency-group" id="cny-group"><i class="currency-flag fas fa-yen-sign"></i><label for="cny">CNY (¥)</label><div class="input-container"><input type="number" id="cny" placeholder="Enter amount..." /></div><div class="rate-info" id="cny-rate">1 CNY = ...</div><div class="history-link" data-base="CNY">Show History</div></div>
+      <footer><p>Live rates by <a href="https://www.exchangerate-api.com/" target="_blank">ExchangeRate-API</a>. Historical rates by <a href="https://www.frankfurter.app/" target="_blank">Frankfurter API</a>.</p></footer>
     </div>
-
-    <div class="currency-group" id="gbp-group">
-      <i class="currency-flag fas fa-flag-uk"></i>
-      <label for="gbp">GBP (£)</label>
-      <div class="input-container">
-        <input type="number" id="gbp" placeholder="Enter amount..." />
-      </div>
-      <div class="rate-info" id="gbp-rate">1 GBP = ...</div>
-    </div>
-
-    <div class="currency-group" id="cny-group">
-      <i class="currency-flag fas fa-flag-china"></i>
-      <label for="cny">CNY (¥)</label>
-      <div class="input-container">
-        <input type="number" id="cny" placeholder="Enter amount..." />
-      </div>
-      <div class="rate-info" id="cny-rate">1 CNY = ...</div>
-    </div>
-
-    <footer>
-      <p>Exchange rates provided by <a href="https://www.exchangerate-api.com/" target="_blank">ExchangeRate-API</a></p>
-      <p>Developed by Rain, via DeepSeek and ChatGPT</p>
-    </footer>
   </div>
 
   <script>
-    const inputs = {
-      USD: document.getElementById('usd'),
-      EUR: document.getElementById('eur'),
-      GBP: document.getElementById('gbp'),
-      CNY: document.getElementById('cny')
-    };
+    // PART 1: LIVE CONVERTER SCRIPT
+    const inputs = { USD: document.getElementById('usd'), EUR: document.getElementById('eur'), GBP: document.getElementById('gbp'), CNY: document.getElementById('cny') };
+    const rateDisplays = { USD: document.getElementById('usd-rate'), EUR: document.getElementById('eur-rate'), GBP: document.getElementById('gbp-rate'), CNY: document.getElementById('cny-rate') };
+    let rates = {}, refreshInterval = null;
+    function formatTimestamp(date) { const options = { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }; return date.toLocaleDateString('en-US', options); }
+    function updateTimestamp() { document.getElementById('timestamp').textContent = formatTimestamp(new Date()); }
+    function setupAutoRefresh() { if (refreshInterval) clearInterval(refreshInterval); refreshInterval = setInterval(fetchRates, 1800000); }
+    async function fetchRates() { try { const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD'); const data = await res.json(); if (!data || !data.rates) { console.error('API returned unexpected data:', data); return; } rates = data.rates; updateTimestamp(); updateRateDisplays(); setupInputListeners(); if (!refreshInterval) setupAutoRefresh(); } catch (err) { console.error('Error fetching rates:', err); } }
+    function updateRateDisplays() { if (rates.EUR) { rateDisplays.USD.textContent = `1 USD = ${rates.EUR.toFixed(4)} EUR | ${rates.GBP.toFixed(4)} GBP | ${rates.CNY.toFixed(4)} CNY`; rateDisplays.EUR.textContent = `1 EUR = ${(1/rates.EUR).toFixed(4)} USD | ${(rates.GBP/rates.EUR).toFixed(4)} GBP | ${(rates.CNY/rates.EUR).toFixed(4)} CNY`; rateDisplays.GBP.textContent = `1 GBP = ${(1/rates.GBP).toFixed(4)} USD | ${(rates.EUR/rates.GBP).toFixed(4)} EUR | ${(rates.CNY/rates.GBP).toFixed(4)} CNY`; rateDisplays.CNY.textContent = `1 CNY = ${(1/rates.CNY).toFixed(4)} USD | ${(rates.EUR/rates.CNY).toFixed(4)} EUR | ${(rates.GBP/rates.CNY).toFixed(4)} GBP`; } }
+    function convertFrom(currency, amount) { const rateOfCurrency = currency === 'USD' ? 1 : rates[currency]; if (!rateOfCurrency) return; const amountInUSD = amount / rateOfCurrency; for (const [cur, input] of Object.entries(inputs)) { if (cur !== currency) { const rateOfTarget = cur === 'USD' ? 1 : rates[cur]; input.value = (amountInUSD * rateOfTarget).toFixed(2); } } }
+    function setupInputListeners() { for (const [currency, input] of Object.entries(inputs)) { input.replaceWith(input.cloneNode(true)); const new_input = document.getElementById(input.id); inputs[currency] = new_input; new_input.addEventListener('input', (event) => { const value = parseFloat(new_input.value); if (!isNaN(value) && value >= 0) { convertFrom(currency, value); } else { for (const [cur, otherInput] of Object.entries(inputs)) { if (cur !== currency) otherInput.value = ''; } } }); } }
 
-    const rateDisplays = {
-      USD: document.getElementById('usd-rate'),
-      EUR: document.getElementById('eur-rate'),
-      GBP: document.getElementById('gbp-rate'),
-      CNY: document.getElementById('cny-rate')
-    };
+    // PART 2: HISTORICAL CHART SCRIPT
+    const historyCurrencies = ["USD", "GBP", "EUR", "CNY"];
+    const ranges = { "1w": 7, "1m": 30, "1y": 365, "ytd": "ytd", "all": "all" };
+    let currentBase = null, currentRange = "1m", activeCharts = [];
+    const chartsPanel = document.getElementById("charts-panel");
 
-    let rates = {};
-    let lastFetchTime = null;
-    let refreshInterval = null;
-
-    function formatTimestamp(date) {
-      const options = { 
-        weekday: 'short', 
-        month: 'short', 
-        day: '2-digit', 
-        year: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Europe/Paris'
-      };
-      return date.toLocaleDateString('en-US', options);
+    function getStartDate(rangeKey) { const today = new Date(); if (rangeKey === "ytd") return `${today.getFullYear()}-01-01`; if (rangeKey === "all") return "1999-01-04"; const days = ranges[rangeKey]; const pastDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000); return pastDate.toISOString().slice(0, 10); }
+    async function fetchHistoricalRates(base, symbols, startDate) { const endDate = new Date().toISOString().slice(0, 10); const url = `https://api.frankfurter.app/${startDate}..${endDate}?from=${base}&to=${symbols.join(",")}`; try { const res = await fetch(url); if (!res.ok) throw new Error(`API error fetching historical rates`); return await res.json(); } catch(e) { console.error(e); return null; } }
+    function createChart(ctx, labels, data, base, target) { const chartColors = { 'EUR': '#f3722c', 'GBP': '#548f9e', 'CNY': '#f94144', 'USD': '#1e3e5e' }; const color = chartColors[target] || 'blue'; return new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: `${base} → ${target}`, data: data, borderColor: color, backgroundColor: `${color}33`, fill: true, tension: 0.2, }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#333' } } }, scales: { x: { ticks: { color: '#555' }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { ticks: { color: '#555' }, grid: { color: 'rgba(0,0,0,0.05)' } } } } }); }
+    
+    function closeChartsPanel() {
+        chartsPanel.style.width = '0';
+        chartsPanel.style.padding = '0';
+        chartsPanel.style.borderWidth = '0';
+        chartsPanel.style.opacity = '0';
+        setTimeout(() => { if (chartsPanel.style.opacity === '0') { chartsPanel.innerHTML = ''; } }, 400);
+        activeCharts.forEach(chart => chart.destroy());
+        activeCharts = [];
     }
 
-    function updateTimestamp() {
-      const now = new Date();
-      lastFetchTime = now;
-      document.getElementById('timestamp').textContent = formatTimestamp(now) + " (CET)";
+    async function updateCharts(base, rangeKey) {
+        currentBase = base; currentRange = rangeKey;
+        chartsPanel.style.width = '55%';
+        chartsPanel.style.padding = '40px';
+        chartsPanel.style.borderWidth = '1px';
+        chartsPanel.style.opacity = '1';
+        chartsPanel.innerHTML = '<p style="text-align: center; color: #1e3e5e; font-size: 1.2rem; padding: 40px 0;">Loading chart data...</p>';
+        const otherCurrencies = historyCurrencies.filter(c => c !== base);
+        const startDate = getStartDate(rangeKey);
+        const data = await fetchHistoricalRates(base, otherCurrencies, startDate);
+        if (!data || !data.rates) { chartsPanel.innerHTML = '<p style="text-align: center; color: #c0392b; font-size: 1.2rem; padding: 40px 0;">Failed to fetch historical data.</p>'; return; }
+        chartsPanel.innerHTML = `<div id="chartsContainer"><span id="closeCharts">✖</span><h3>Historical Rates for ${base}</h3><div id="rangeSelectors">${Object.keys(ranges).map(r => `<button data-range="${r}" class="${r === rangeKey ? 'active' : ''}">${r.toUpperCase()}</button>`).join("")}</div></div>`;
+        document.getElementById("closeCharts").onclick = closeChartsPanel;
+        document.querySelectorAll("#rangeSelectors button").forEach(btn => { btn.addEventListener("click", () => { if (btn.dataset.range !== currentRange) { updateCharts(currentBase, btn.dataset.range); } }); });
+        activeCharts.forEach(chart => chart.destroy());
+        activeCharts = [];
+        const dates = Object.keys(data.rates).sort();
+        const chartsContainer = document.getElementById("chartsContainer");
+        otherCurrencies.forEach(target => { const canvas = document.createElement("canvas"); chartsContainer.appendChild(canvas); const dataPoints = dates.map(date => data.rates[date][target]); activeCharts.push(createChart(canvas.getContext("2d"), dates, dataPoints, base, target)); });
     }
+    function setupHistoryListeners() { document.querySelectorAll(".history-link").forEach(link => { link.addEventListener("click", () => { const baseCurrency = link.getAttribute("data-base"); updateCharts(baseCurrency, "1m"); }); }); }
 
-    function setupAutoRefresh() {
-      if (refreshInterval) clearInterval(refreshInterval);
-      refreshInterval = setInterval(() => {
-        fetchRates();
-      }, 1800000); // 30 minutes = 1,800,000 ms
-    }
-
-    async function fetchRates() {
-      try {
-        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-        const data = await res.json();
-        if (!data || !data.rates) {
-          console.error('API returned unexpected data:', data);
-          return;
-        }
-        rates = data.rates;
-        updateTimestamp();
-        updateRateDisplays();
-        setupListeners();
-        
-        if (!refreshInterval) setupAutoRefresh();
-        
-      } catch (err) {
-        console.error('Error fetching rates:', err);
-      }
-    }
-
-    function updateRateDisplays() {
-      if (rates.EUR) {
-        rateDisplays.USD.textContent = `1 USD = ${rates.EUR.toFixed(4)} EUR | ${rates.GBP.toFixed(4)} GBP | ${rates.CNY.toFixed(4)} CNY`;
-        rateDisplays.EUR.textContent = `1 EUR = ${(1/rates.EUR).toFixed(4)} USD | ${(rates.GBP/rates.EUR).toFixed(4)} GBP | ${(rates.CNY/rates.EUR).toFixed(4)} CNY`;
-        rateDisplays.GBP.textContent = `1 GBP = ${(1/rates.GBP).toFixed(4)} USD | ${(rates.EUR/rates.GBP).toFixed(4)} EUR | ${(rates.CNY/rates.GBP).toFixed(4)} CNY`;
-        rateDisplays.CNY.textContent = `1 CNY = ${(1/rates.CNY).toFixed(4)} USD | ${(rates.EUR/rates.CNY).toFixed(4)} EUR | ${(rates.GBP/rates.CNY).toFixed(4)} GBP`;
-      }
-    }
-
-    function convertFrom(currency, amount) {
-      const rateOfCurrency = currency === 'USD' ? 1 : rates[currency];
-      if (!rateOfCurrency) {
-        console.warn('Rate not found for', currency);
-        return;
-      }
-
-      const amountInUSD = amount / rateOfCurrency;
-
-      for (const [cur, input] of Object.entries(inputs)) {
-        if (cur !== currency) {
-          const rateOfTarget = cur === 'USD' ? 1 : rates[cur];
-          input.value = (amountInUSD * rateOfTarget).toFixed(2);
-        }
-      }
-    }
-
-    function setupListeners() {
-      for (const [currency, input] of Object.entries(inputs)) {
-        input.addEventListener('input', (event) => {
-          const value = parseFloat(input.value);
-          if (!isNaN(value) && value >= 0) {
-            convertFrom(currency, value);
-          } else {
-            for (const [cur, otherInput] of Object.entries(inputs)) {
-              if (cur !== currency) otherInput.value = '';
-            }
-          }
-        });
-      }
-    }
-
+    // INITIALIZATION
     document.addEventListener('DOMContentLoaded', () => {
       fetchRates();
+      setupHistoryListeners();
     });
   </script>
 </body>

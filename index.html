@@ -19,24 +19,27 @@
     }
 
     body {
-      background: url('https://i.imgur.com/DUjg8i1.jpg') center/cover fixed no-repeat;
+      background: url('https://i.imgur.com/NSjU85Q.jpeg') center/cover fixed no-repeat;
       margin: 0;
       min-height: 100vh;
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
-      justify-content: center;
       align-items: flex-start;
-      padding: 40px 20px;
+      padding: 40px;
       color: var(--dark);
+      box-sizing: border-box;
+      overflow-x: hidden; /* Prevent horizontal scrollbar during animation */
     }
 
     .main-content-wrapper {
         display: flex;
-        justify-content: flex-end; /* Align content to the right */
         align-items: flex-start;
-        gap: 30px;
+        gap: 60px; 
         width: 100%;
         max-width: 1600px;
+        /* Initial position: 10vw margin from the left */
+        margin: 0 auto 0 10vw;
+        transition: margin 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .panel-style {
@@ -50,20 +53,21 @@
       animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    /* Left panel for charts */
-    #charts-panel {
-        width: 55%; 
-        position: sticky;
-        top: 40px;
-        transition: width 0.4s ease, padding 0.4s ease, opacity 0.4s ease, border 0.4s ease;
-    }
-
-    /* Right panel for converter */
+    /* Left panel for converter */
     .converter-container {
-        width: 45%; 
+        width: 55%; /* Initial width */
         max-width: 700px;
         margin: 0;
         flex-shrink: 0; /* Prevent this panel from shrinking */
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Right panel for charts */
+    #charts-panel {
+        width: 65%; 
+        position: sticky;
+        top: 40px;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     h2 {
@@ -151,27 +155,37 @@
     }
     
     #chartsContainer canvas { max-width: 100%; margin-bottom: 20px; background-color: rgba(255, 255, 255, 0.6); border-radius: 12px; padding: 10px; box-sizing: border-box; }
+    
+    /* Unified style for all range buttons */
     #rangeSelectors { margin-bottom: 10px; text-align: center; }
-    #rangeSelectors button { margin: 0 5px; padding: 10px 18px; cursor: pointer; border: 1px solid transparent; background-color: rgba(0,0,0,0.05); color: #3b6d9d; border-radius: 8px; font-weight: 700; font-size: 0.95rem; letter-spacing: 0.5px; transition: all 0.2s ease-in-out; }
-    #rangeSelectors button:hover { background-color: rgba(0,0,0,0.1); border-color: #3b6d9d; }
-    #rangeSelectors button.active { background-color: #1e3e5e; color: white; border-color: #1e3e5e; }
-
-    /* Special styles for YTD/ALL buttons */
-    #rangeSelectors button[data-range="ytd"],
-    #rangeSelectors button[data-range="all"] {
+    #rangeSelectors button {
+        margin: 0 5px;
+        padding: 10px 18px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease-in-out;
         color: rgba(240, 249, 252, 0.9);
         background-color: rgba(0, 0, 0, 0.25);
     }
-    #rangeSelectors button[data-range="ytd"]:hover,
-    #rangeSelectors button[data-range="all"]:hover {
+    #rangeSelectors button:hover {
         background-color: rgba(0, 0, 0, 0.35);
         border-color: rgba(240, 249, 252, 0.5);
     }
+    #rangeSelectors button.active {
+        background-color: #1e3e5e;
+        color: white;
+        border-color: #548f9e;
+    }
 
     @media (max-width: 1200px) {
+        .main-content-wrapper { margin: 0 auto !important; }
         .main-content-wrapper { flex-direction: column; align-items: center; justify-content: flex-start; }
-        #charts-panel, .converter-container { width: 100%; max-width: 700px; }
-        #charts-panel { position: static; order: -1; } /* Place chart panel on top on mobile */
+        #charts-panel, .converter-container { width: 100% !important; max-width: 700px; }
+        #charts-panel { position: static; order: 1; } /* Place chart panel below on mobile */
     }
 
     @media (max-width: 480px) {
@@ -187,9 +201,6 @@
 <body>
 
   <div class="main-content-wrapper">
-    <div id="charts-panel" class="panel-style" style="width: 0; padding: 0; border: 0; opacity: 0; overflow: hidden;">
-      </div>
-
     <div class="converter-container panel-style">
       <h2>Live Currency Converter</h2>
       <div class="last-updated">Last updated: <span id="timestamp">Never</span><div class="refresh-info">Auto-refreshes every 30 minutes</div></div>
@@ -199,6 +210,9 @@
       <div class="currency-group" id="cny-group"><i class="currency-flag fas fa-yen-sign"></i><label for="cny">CNY (¥)</label><div class="input-container"><input type="number" id="cny" placeholder="Enter amount..." /></div><div class="rate-info" id="cny-rate">1 CNY = ...</div><div class="history-link" data-base="CNY">Show History</div></div>
       <footer><p>Live rates by <a href="https://www.exchangerate-api.com/" target="_blank">ExchangeRate-API</a>. Historical rates by <a href="https://www.frankfurter.app/" target="_blank">Frankfurter API</a>.</p></footer>
     </div>
+    
+    <div id="charts-panel" class="panel-style" style="width: 0; padding: 0; border: 0; opacity: 0; overflow: hidden;">
+      </div>
   </div>
 
   <script>
@@ -216,27 +230,33 @@
 
     // PART 2: HISTORICAL CHART SCRIPT
     const historyCurrencies = ["USD", "GBP", "EUR", "CNY"];
-    const ranges = { "1w": 7, "1m": 30, "1y": 365, "ytd": "ytd", "all": "all" };
+    const ranges = { "1w": 7, "1m": 30, "1y": 365, "5y": 1825, "ytd": "ytd", "all": "all" };
     let currentBase = null, currentRange = "1m", activeCharts = [];
     const chartsPanel = document.getElementById("charts-panel");
+    const converterPanel = document.querySelector(".converter-container");
+    const mainWrapper = document.querySelector(".main-content-wrapper");
 
     function getStartDate(rangeKey) { const today = new Date(); if (rangeKey === "ytd") return `${today.getFullYear()}-01-01`; if (rangeKey === "all") return "1999-01-04"; const days = ranges[rangeKey]; const pastDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000); return pastDate.toISOString().slice(0, 10); }
     async function fetchHistoricalRates(base, symbols, startDate) { const endDate = new Date().toISOString().slice(0, 10); const url = `https://api.frankfurter.app/${startDate}..${endDate}?from=${base}&to=${symbols.join(",")}`; try { const res = await fetch(url); if (!res.ok) throw new Error(`API error fetching historical rates`); return await res.json(); } catch(e) { console.error(e); return null; } }
     function createChart(ctx, labels, data, base, target) { const chartColors = { 'EUR': '#f3722c', 'GBP': '#548f9e', 'CNY': '#f94144', 'USD': '#1e3e5e' }; const color = chartColors[target] || 'blue'; return new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: `${base} → ${target}`, data: data, borderColor: color, backgroundColor: `${color}33`, fill: true, tension: 0.2, }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#333' } } }, scales: { x: { ticks: { color: '#555' }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { ticks: { color: '#555' }, grid: { color: 'rgba(0,0,0,0.05)' } } } } }); }
     
     function closeChartsPanel() {
+        mainWrapper.style.margin = '0 auto 0 10vw';
+        converterPanel.style.width = '55%';
         chartsPanel.style.width = '0';
         chartsPanel.style.padding = '0';
         chartsPanel.style.borderWidth = '0';
         chartsPanel.style.opacity = '0';
-        setTimeout(() => { if (chartsPanel.style.opacity === '0') { chartsPanel.innerHTML = ''; } }, 400);
+        setTimeout(() => { if (chartsPanel.style.opacity === '0') { chartsPanel.innerHTML = ''; } }, 500);
         activeCharts.forEach(chart => chart.destroy());
         activeCharts = [];
     }
 
     async function updateCharts(base, rangeKey) {
+        mainWrapper.style.margin = '0 auto';
         currentBase = base; currentRange = rangeKey;
-        chartsPanel.style.width = '55%';
+        converterPanel.style.width = '35%';
+        chartsPanel.style.width = '65%';
         chartsPanel.style.padding = '40px';
         chartsPanel.style.borderWidth = '1px';
         chartsPanel.style.opacity = '1';
